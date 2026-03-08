@@ -12,10 +12,10 @@ interface GetContextArgs {
 export async function getContext(args: GetContextArgs): Promise<string> {
   const repoRoot = await detectRepoRoot();
   if (!repoRoot) {
-    return 'Error: engram requires a git repository. Run from inside a git project.';
+    return 'Error: cortexmem requires a git repository. Run from inside a git project.';
   }
 
-  const maxTokens = args.max_tokens || Number(process.env.ENGRAM_MAX_TOKENS) || 3000;
+  const maxTokens = args.max_tokens || Number(process.env.CORTEXMEM_MAX_TOKENS) || 3000;
   const maxChars = maxTokens * 4;
   const repoName = repoRoot.split('/').pop() || repoRoot;
 
@@ -27,7 +27,7 @@ export async function getContext(args: GetContextArgs): Promise<string> {
       return `No relevant context found for: "${args.query}"`;
     }
 
-    let output = `## Engram Context — ${repoName}\nQuery: "${args.query}" | ${results.length} results\n\n`;
+    let output = `## CortexMem Context — ${repoName}\nQuery: "${args.query}" | ${results.length} results\n\n`;
     let totalChars = output.length;
 
     for (const result of results) {
@@ -51,7 +51,7 @@ export async function getContext(args: GetContextArgs): Promise<string> {
   const stats = await getStats(repoRoot);
   const priorityTypes = ['constraint', 'decision', 'state', 'discovery', 'preference'];
 
-  let output = `## Engram Context — ${repoName}\n`;
+  let output = `## CortexMem Context — ${repoName}\n`;
   const lastInit = await getConfig(repoRoot, 'last_init_at');
   if (lastInit) {
     output += `Initialized: ${lastInit}\n`;
@@ -83,7 +83,7 @@ export async function getContext(args: GetContextArgs): Promise<string> {
   }
 
   if (Object.keys(stats).length === 0) {
-    output += '_No context stored yet. Use save_context to start building memory, or run `engram init` to ingest codebase._\n';
+    output += '_No context stored yet. Use save_context to start building memory, or run `cortexmem init` to ingest codebase._\n';
   }
 
   return output;

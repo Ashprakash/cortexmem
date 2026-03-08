@@ -11,7 +11,7 @@ import { summarizeSession } from './tools/summarize_session.js';
 
 export async function startServer(): Promise<void> {
   const server = new Server(
-    { name: 'engram', version: '0.1.0' },
+    { name: 'cortexmem', version: '0.1.0' },
     { capabilities: { tools: {} } },
   );
 
@@ -90,7 +90,7 @@ export async function startServer(): Promise<void> {
       {
         name: 'get_status',
         description:
-          'Check engram status: stored chunks, types, last init time, storage location.',
+          'Check cortexmem status: stored chunks, types, last init time, storage location.',
         inputSchema: {
           type: 'object' as const,
           properties: {},

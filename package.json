@@ -1,5 +1,5 @@
 {
-  "name": "engram",
+  "name": "cortexmem",
   "version": "0.1.0",
   "description": "Persistent memory for AI coding agents — MCP server for cross-session context",
   "keywords": [
@@ -15,7 +15,7 @@
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "bin": {
-    "engram": "dist/index.js"
+    "cortexmem": "dist/index.js"
   },
   "type": "module",
   "scripts": {

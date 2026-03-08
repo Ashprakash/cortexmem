@@ -15,7 +15,7 @@ async function main() {
       }
 
       const projectFile = process.argv[3];
-      console.log(`\nEngram — initializing context for ${repoRoot}\n`);
+      console.log(`\nCortexMem — initializing context for ${repoRoot}\n`);
 
       const { ingestAll } = await import('./ingest.js');
       const result = await ingestAll(repoRoot, {
@@ -29,8 +29,8 @@ async function main() {
       if (result.projectChunks > 0) {
         console.log(`  Project file chunks: ${result.projectChunks}`);
       }
-      console.log(`\nStorage: ${repoRoot}/.engram/store.db`);
-      console.log(`\nAdd to your MCP config to start using engram with your AI agent.`);
+      console.log(`\nStorage: ${repoRoot}/.cortexmem/store.db`);
+      console.log(`\nAdd to your MCP config to start using cortexmem with your AI agent.`);
       closeDb();
       break;
     }
@@ -38,7 +38,7 @@ async function main() {
     case 'inject': {
       const filePath = process.argv[3];
       if (!filePath) {
-        console.error('Usage: engram inject <file>');
+        console.error('Usage: cortexmem inject <file>');
         process.exit(1);
       }
 
@@ -73,21 +73,21 @@ async function main() {
     case '--help':
     case '-h': {
       console.log(`
-engram — persistent memory for AI coding agents
+cortexmem — persistent memory for AI coding agents
 
 Commands:
-  engram init [project-file]   Scan git history + codebase, build context store
-  engram inject <file>         Inject a project file (spec, requirements, etc.)
-  engram status                Show what's stored
-  engram                       Start MCP server (used by AI editors)
+  cortexmem init [project-file]   Scan git history + codebase, build context store
+  cortexmem inject <file>         Inject a project file (spec, requirements, etc.)
+  cortexmem status                Show what's stored
+  cortexmem                       Start MCP server (used by AI editors)
 
 Setup:
   Add to your MCP config (e.g. ~/.cursor/mcp.json):
   {
     "mcpServers": {
-      "engram": {
+      "cortexmem": {
         "command": "npx",
-        "args": ["-y", "engram"]
+        "args": ["-y", "cortexmem"]
       }
     }
   }
@@ -104,6 +104,6 @@ Setup:
 }
 
 main().catch((err) => {
-  console.error('engram error:', err);
+  console.error('cortexmem error:', err);
   process.exit(1);
 });

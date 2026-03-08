@@ -51,7 +51,7 @@ const CONFIG_FILES = new Set([
 const DOC_EXTENSIONS = new Set(['.md', '.mdx', '.txt', '.rst']);
 
 const SKIP_DIRS = new Set([
-  'node_modules', '.git', '.engram', 'dist', 'build', 'out',
+  'node_modules', '.git', '.cortexmem', 'dist', 'build', 'out',
   '.next', '.nuxt', '.svelte-kit', '__pycache__', '.pytest_cache',
   'target', 'vendor', '.venv', 'venv', 'env',
   'coverage', '.nyc_output', '.cache', '.turbo',

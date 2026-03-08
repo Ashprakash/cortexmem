@@ -23,7 +23,7 @@ interface SaveContextArgs {
 export async function saveContext(args: SaveContextArgs): Promise<string> {
   const repoRoot = await detectRepoRoot();
   if (!repoRoot) {
-    return 'Error: engram requires a git repository. Run from inside a git project.';
+    return 'Error: cortexmem requires a git repository. Run from inside a git project.';
   }
 
   const sessionId = getSessionId();

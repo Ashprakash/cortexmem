@@ -33,7 +33,7 @@ interface SummarizeArgs {
 export async function summarizeSession(args: SummarizeArgs): Promise<string> {
   const repoRoot = await detectRepoRoot();
   if (!repoRoot) {
-    return 'Error: engram requires a git repository. Run from inside a git project.';
+    return 'Error: cortexmem requires a git repository. Run from inside a git project.';
   }
 
   // Gather all user_context entries
@@ -57,7 +57,7 @@ export async function summarizeSession(args: SummarizeArgs): Promise<string> {
     return `Found ${entries.length} entries but ANTHROPIC_API_KEY not set. Set it to enable compaction.`;
   }
 
-  const model = process.env.ENGRAM_MODEL || 'claude-haiku-4-5-20251001';
+  const model = process.env.CORTEXMEM_MODEL || 'claude-haiku-4-5-20251001';
   const entriesText = entries.map((e) => `[${e.type}] ${e.content}`).join('\n');
   const prompt = COMPACTION_PROMPT.replace('{{ENTRIES}}', entriesText);
 

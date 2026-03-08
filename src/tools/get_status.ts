@@ -6,7 +6,7 @@ import { join } from 'path';
 export async function getStatus(): Promise<string> {
   const repoRoot = await detectRepoRoot();
   if (!repoRoot) {
-    return 'Error: engram requires a git repository. Run from inside a git project.';
+    return 'Error: cortexmem requires a git repository. Run from inside a git project.';
   }
 
   const branch = await detectBranch(repoRoot);
@@ -17,10 +17,10 @@ export async function getStatus(): Promise<string> {
   const lastInit = await getConfig(repoRoot, 'last_init_at');
   const lastCommit = await getConfig(repoRoot, 'last_commit_hash');
 
-  let output = 'Engram Status\n';
+  let output = 'CortexMem Status\n';
   output += `Repo: ${repoName} (${repoRoot})\n`;
   output += `Branch: ${branch}\n`;
-  output += `Storage: ${join(repoRoot, '.engram', 'store.db')}\n`;
+  output += `Storage: ${join(repoRoot, '.cortexmem', 'store.db')}\n`;
   output += `Total chunks: ${total}\n`;
 
   if (lastInit) output += `Last initialized: ${lastInit}\n`;

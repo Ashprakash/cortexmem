@@ -8,9 +8,9 @@ let db: SqlJsDatabase | null = null;
 let currentDbPath: string | null = null;
 
 export function getDbPath(projectRoot: string): string {
-  const engramDir = join(projectRoot, '.engram');
-  mkdirSync(engramDir, { recursive: true });
-  return join(engramDir, 'store.db');
+  const cortexmemDir = join(projectRoot, '.cortexmem');
+  mkdirSync(cortexmemDir, { recursive: true });
+  return join(cortexmemDir, 'store.db');
 }
 
 export async function getDb(projectRoot: string): Promise<SqlJsDatabase> {
