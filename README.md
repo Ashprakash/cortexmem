@@ -131,7 +131,7 @@ At session end: call engram summarize_session to compact memory.
 ## Development
 
 ```bash
-git clone https://github.com/AjiteshSK/engram.git
+git clone https://github.com/Ashprakash/engram.git
 cd engram
 npm install
 npm run dev     # run with tsx
