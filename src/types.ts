@@ -56,5 +56,26 @@ export const CONTEXT_TYPE_LABELS: Record<string, string> = {
   doc: 'Documentation',
 };
 
+export type SummaryLevel = 'project' | 'branch' | 'session';
+
+export interface Summary {
+  id: number;
+  level: SummaryLevel;
+  scope: string;            // '*' for project, branch name, or session_id
+  user: string | null;
+  content: string;
+  embedding: Float32Array | null;
+  parentId: number | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface HierarchicalResult {
+  breadcrumb: string;       // "project > branch:main > session:abc123"
+  summary: Summary;
+  chunks?: SearchResult[];  // raw chunks if drilled to depth 3
+  score: number;
+}
+
 export const EMBEDDING_MODEL = 'Xenova/all-MiniLM-L6-v2';
 export const EMBEDDING_DIMS = 384;

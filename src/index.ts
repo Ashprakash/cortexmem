@@ -22,10 +22,10 @@ async function main() {
         projectFile: projectFile || undefined,
       });
 
-      console.log(`Summary:`);
-      console.log(`  Git commits indexed: ${result.commits}`);
+      console.log(`Summary${result.incremental ? ' (incremental)' : ''}:`);
+      console.log(`  Git commits indexed: ${result.commits}${result.incremental ? ' (new)' : ''}`);
       console.log(`  Source files scanned: ${result.files}`);
-      console.log(`  Total chunks stored: ${result.chunks}`);
+      console.log(`  Total chunks stored: ${result.chunks}${result.incremental ? ' (new)' : ''}`);
       if (result.projectChunks > 0) {
         console.log(`  Project file chunks: ${result.projectChunks}`);
       }

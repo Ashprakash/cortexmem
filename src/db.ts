@@ -2,7 +2,7 @@ import initSqlJs from 'sql.js';
 type SqlJsDatabase = import('sql.js').Database;
 import { readFileSync, writeFileSync, mkdirSync, existsSync } from 'fs';
 import { join } from 'path';
-import { EMBEDDING_DIMS, type Chunk, type ChunkSource } from './types.js';
+import { EMBEDDING_DIMS, type Chunk, type ChunkSource, type Summary, type SummaryLevel } from './types.js';
 
 let db: SqlJsDatabase | null = null;
 let currentDbPath: string | null = null;
@@ -67,6 +67,25 @@ function initSchema(db: SqlJsDatabase): void {
 
     CREATE INDEX IF NOT EXISTS idx_chunks_source ON chunks(source);
     CREATE INDEX IF NOT EXISTS idx_chunks_context_type ON chunks(context_type);
+    CREATE INDEX IF NOT EXISTS idx_chunks_session ON chunks(session_id);
+
+    CREATE TABLE IF NOT EXISTS summaries (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      level TEXT NOT NULL,
+      scope TEXT NOT NULL,
+      user TEXT,
+      content TEXT NOT NULL,
+      embedding BLOB,
+      parent_id INTEGER,
+      created_at TEXT NOT NULL,
+      updated_at TEXT NOT NULL,
+      FOREIGN KEY (parent_id) REFERENCES summaries(id)
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_summaries_level ON summaries(level);
+    CREATE INDEX IF NOT EXISTS idx_summaries_scope ON summaries(scope);
+    CREATE INDEX IF NOT EXISTS idx_summaries_parent ON summaries(parent_id);
+    CREATE UNIQUE INDEX IF NOT EXISTS idx_summaries_level_scope ON summaries(level, scope);
   `);
 }
 
@@ -233,10 +252,234 @@ export async function getConfig(projectRoot: string, key: string): Promise<strin
   return (results[0]?.values[0]?.[0] as string) || null;
 }
 
+export async function getRecentChunksBySource(
+  projectRoot: string,
+  source: ChunkSource,
+  limit: number = 10,
+): Promise<Chunk[]> {
+  const d = await getDb(projectRoot);
+  const results = d.exec(
+    'SELECT * FROM chunks WHERE source = ? ORDER BY created_at DESC LIMIT ?',
+    [source, limit],
+  );
+  if (!results[0]) return [];
+  return results[0].values.map(rowToChunk);
+}
+
+export async function searchChunksByKeywords(
+  projectRoot: string,
+  tokens: string[],
+  topK: number = 20,
+  contextTypeFilter?: string[],
+  sessionFilter?: string,
+): Promise<Array<{ chunk: Chunk; matchCount: number }>> {
+  if (tokens.length === 0) return [];
+
+  const d = await getDb(projectRoot);
+
+  const escapedTokens = tokens.map((t) =>
+    t.replace(/%/g, '\\%').replace(/_/g, '\\_'),
+  );
+  const caseExprs = escapedTokens
+    .map(() => `CASE WHEN lower(content) LIKE ? THEN 1 ELSE 0 END`)
+    .join(' + ');
+  const whereOr = escapedTokens.map(() => `lower(content) LIKE ?`).join(' OR ');
+
+  let sql = `SELECT *, (${caseExprs}) as match_count FROM chunks WHERE (${whereOr})`;
+  const params: (string | number)[] = [];
+
+  for (const token of escapedTokens) {
+    params.push(`%${token}%`);
+  }
+  for (const token of escapedTokens) {
+    params.push(`%${token}%`);
+  }
+
+  if (contextTypeFilter && contextTypeFilter.length > 0) {
+    const placeholders = contextTypeFilter.map(() => '?').join(',');
+    sql += ` AND context_type IN (${placeholders})`;
+    params.push(...contextTypeFilter);
+  }
+
+  if (sessionFilter) {
+    sql += ` AND session_id = ?`;
+    params.push(sessionFilter);
+  }
+
+  sql += ` ORDER BY match_count DESC LIMIT ?`;
+  params.push(topK);
+
+  const results = d.exec(sql, params);
+  if (!results[0]) return [];
+
+  return results[0].values.map((row) => {
+    const matchCount = row[row.length - 1] as number;
+    return { chunk: rowToChunk(row), matchCount };
+  });
+}
+
+// --- Summary CRUD ---
+
+export async function upsertSummary(
+  projectRoot: string,
+  level: SummaryLevel,
+  scope: string,
+  content: string,
+  embedding: Float32Array | null,
+  parentId: number | null = null,
+  user: string | null = null,
+): Promise<number> {
+  const d = await getDb(projectRoot);
+  const embeddingBlob = embedding ? embeddingToBlob(embedding) : null;
+  const now = new Date().toISOString();
+
+  d.run(
+    `INSERT INTO summaries (level, scope, user, content, embedding, parent_id, created_at, updated_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+     ON CONFLICT(level, scope) DO UPDATE SET
+       content = excluded.content,
+       embedding = excluded.embedding,
+       parent_id = excluded.parent_id,
+       user = excluded.user,
+       updated_at = excluded.updated_at`,
+    [level, scope, user, content, embeddingBlob, parentId, now, now],
+  );
+
+  const result = d.exec(
+    'SELECT id FROM summaries WHERE level = ? AND scope = ?',
+    [level, scope],
+  );
+  const id = result[0]?.values[0]?.[0] as number;
+  saveDb();
+  return id;
+}
+
+export async function getSummary(
+  projectRoot: string,
+  level: SummaryLevel,
+  scope: string,
+): Promise<Summary | null> {
+  const d = await getDb(projectRoot);
+  const results = d.exec(
+    'SELECT * FROM summaries WHERE level = ? AND scope = ?',
+    [level, scope],
+  );
+  if (!results[0]?.values[0]) return null;
+  return rowToSummary(results[0].values[0]);
+}
+
+export async function getSummariesByLevel(
+  projectRoot: string,
+  level: SummaryLevel,
+): Promise<Summary[]> {
+  const d = await getDb(projectRoot);
+  const results = d.exec(
+    'SELECT * FROM summaries WHERE level = ? ORDER BY updated_at DESC',
+    [level],
+  );
+  if (!results[0]) return [];
+  return results[0].values.map(rowToSummary);
+}
+
+export async function getChildSummaries(
+  projectRoot: string,
+  parentId: number,
+): Promise<Summary[]> {
+  const d = await getDb(projectRoot);
+  const results = d.exec(
+    'SELECT * FROM summaries WHERE parent_id = ? ORDER BY updated_at DESC',
+    [parentId],
+  );
+  if (!results[0]) return [];
+  return results[0].values.map(rowToSummary);
+}
+
+export async function getSummaryEmbeddings(
+  projectRoot: string,
+  level?: SummaryLevel,
+): Promise<Array<{ id: number; embedding: Float32Array; scope: string; level: string }>> {
+  const d = await getDb(projectRoot);
+  let sql = 'SELECT id, embedding, scope, level FROM summaries WHERE embedding IS NOT NULL';
+  const params: string[] = [];
+  if (level) {
+    sql += ' AND level = ?';
+    params.push(level);
+  }
+  const results = d.exec(sql, params);
+  if (!results[0]) return [];
+
+  return results[0].values.map(([id, blob, scope, lvl]) => ({
+    id: id as number,
+    embedding: blobToEmbedding(blob as Uint8Array),
+    scope: scope as string,
+    level: lvl as string,
+  }));
+}
+
+export async function getChunksBySession(
+  projectRoot: string,
+  sessionId: string,
+): Promise<Chunk[]> {
+  const d = await getDb(projectRoot);
+  const results = d.exec(
+    'SELECT * FROM chunks WHERE session_id = ? ORDER BY created_at ASC',
+    [sessionId],
+  );
+  if (!results[0]) return [];
+  return results[0].values.map(rowToChunk);
+}
+
+export async function getDistinctSessions(
+  projectRoot: string,
+): Promise<string[]> {
+  const d = await getDb(projectRoot);
+  const results = d.exec(
+    "SELECT DISTINCT session_id FROM chunks WHERE session_id IS NOT NULL AND source = 'user_context' ORDER BY created_at DESC",
+  );
+  if (!results[0]) return [];
+  return results[0].values.map((row) => row[0] as string);
+}
+
 export async function clearChunksBySource(projectRoot: string, source: ChunkSource): Promise<void> {
   const d = await getDb(projectRoot);
   d.run('DELETE FROM chunks WHERE source = ?', [source]);
   saveDb();
+}
+
+export async function deleteChunksBySourceRef(projectRoot: string, source: ChunkSource, sourceRef: string): Promise<void> {
+  const d = await getDb(projectRoot);
+  d.run('DELETE FROM chunks WHERE source = ? AND source_ref = ?', [source, sourceRef]);
+  saveDb();
+}
+
+function rowToSummary(row: unknown[]): Summary {
+  return {
+    id: row[0] as number,
+    level: row[1] as SummaryLevel,
+    scope: row[2] as string,
+    user: row[3] as string | null,
+    content: row[4] as string,
+    embedding: row[5] ? blobToEmbedding(row[5] as Uint8Array) : null,
+    parentId: row[6] as number | null,
+    createdAt: row[7] as string,
+    updatedAt: row[8] as string,
+  };
+}
+
+function safeParseMetadata(raw: string): Record<string, unknown> {
+  try {
+    const parsed = JSON.parse(raw || '{}');
+    if (typeof parsed !== 'object' || parsed === null || Array.isArray(parsed)) return {};
+    // Prevent prototype pollution
+    const safe: Record<string, unknown> = Object.create(null);
+    for (const [key, value] of Object.entries(parsed)) {
+      if (key === '__proto__' || key === 'constructor' || key === 'prototype') continue;
+      safe[key] = value;
+    }
+    return safe;
+  } catch {
+    return {};
+  }
 }
 
 function rowToChunk(row: unknown[]): Chunk {
@@ -247,7 +490,7 @@ function rowToChunk(row: unknown[]): Chunk {
     sourceRef: row[3] as string,
     contextType: row[4] as Chunk['contextType'],
     embedding: row[5] ? blobToEmbedding(row[5] as Uint8Array) : null,
-    metadata: JSON.parse((row[6] as string) || '{}'),
+    metadata: safeParseMetadata(row[6] as string),
     createdAt: row[7] as string,
     sessionId: row[8] as string | null,
   };

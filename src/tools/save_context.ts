@@ -1,8 +1,8 @@
 import { nanoid } from 'nanoid';
-import { embed } from '../embeddings.js';
 import { insertChunk } from '../db.js';
-import { detectRepoRoot } from '../git.js';
-import type { ContextType } from '../types.js';
+import { embed } from '../embeddings.js';
+import { detectRepoRoot, detectBranch } from '../git.js';
+import { CONTEXT_TYPES, type ContextType } from '../types.js';
 
 let currentSessionId: string | null = null;
 
@@ -21,16 +21,23 @@ interface SaveContextArgs {
 }
 
 export async function saveContext(args: SaveContextArgs): Promise<string> {
+  // Runtime validation
+  if (!CONTEXT_TYPES.includes(args.context_type)) {
+    return `Error: invalid context_type "${args.context_type}". Must be one of: ${CONTEXT_TYPES.join(', ')}`;
+  }
+
   const repoRoot = await detectRepoRoot();
   if (!repoRoot) {
     return 'Error: cortexmem requires a git repository. Run from inside a git project.';
   }
 
   const sessionId = getSessionId();
+  const branchName = await detectBranch(repoRoot);
   const embedding = await embed(args.content);
 
   const metadata: Record<string, unknown> = {
     confidence: args.confidence || 'high',
+    branch: branchName,
   };
   if (args.related_files) {
     metadata.relatedFiles = args.related_files;
@@ -47,5 +54,8 @@ export async function saveContext(args: SaveContextArgs): Promise<string> {
     sessionId,
   );
 
-  return `Saved ${args.context_type} context (id: ${id})`;
+  // No skeleton creation here — hierarchy nodes are created at compaction time
+  // This avoids polluting the pyramid with "awaiting compaction" placeholders
+
+  return `Saved ${args.context_type} context (id: ${id}, session: ${sessionId}, branch: ${branchName})`;
 }

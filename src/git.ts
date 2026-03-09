@@ -98,6 +98,69 @@ export async function getMainBranch(repoRoot: string): Promise<string> {
   }
 }
 
+export async function getCommitsSince(
+  repoRoot: string,
+  sinceHash: string,
+  maxCommits: number = 500,
+): Promise<GitCommit[]> {
+  try {
+    const branch = await getMainBranch(repoRoot);
+    const { stdout } = await execFileAsync(
+      'git',
+      [
+        'log',
+        `${sinceHash}..${branch}`,
+        `--max-count=${maxCommits}`,
+        '--format=%H%x1f%s%x1f%b%x1f%an%x1f%aI%x1f%x1e',
+        '--name-only',
+      ],
+      { cwd: repoRoot, maxBuffer: 50 * 1024 * 1024 },
+    );
+
+    const commits: GitCommit[] = [];
+    const entries = stdout.split('\x1e').filter((e) => e.trim());
+
+    for (const entry of entries) {
+      const lines = entry.trim().split('\n');
+      const firstLine = lines[0];
+      if (!firstLine) continue;
+      const parts = firstLine.split('\x1f');
+      if (parts.length < 5) continue;
+      const [hash, message, body, author, date] = parts;
+      const files = lines.slice(1).filter((f) => f.trim());
+      commits.push({
+        hash: hash.trim(),
+        message: message.trim(),
+        body: body.trim(),
+        author: author.trim(),
+        date: date.trim(),
+        files,
+      });
+    }
+
+    return commits;
+  } catch {
+    // If sinceHash is invalid or not an ancestor, fall back to full history
+    return getCommitHistory(repoRoot, maxCommits);
+  }
+}
+
+export async function getChangedFilesSince(
+  repoRoot: string,
+  sinceHash: string,
+): Promise<string[]> {
+  try {
+    const { stdout } = await execFileAsync(
+      'git',
+      ['diff', '--name-only', sinceHash, 'HEAD'],
+      { cwd: repoRoot },
+    );
+    return stdout.trim().split('\n').filter((f) => f.trim());
+  } catch {
+    return [];
+  }
+}
+
 export async function getLatestCommitHash(repoRoot: string): Promise<string | null> {
   try {
     const { stdout } = await execFileAsync('git', ['rev-parse', 'HEAD'], { cwd: repoRoot });

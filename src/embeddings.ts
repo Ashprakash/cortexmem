@@ -38,6 +38,10 @@ export async function embedBatch(texts: string[]): Promise<Float32Array[]> {
   return results;
 }
 
+export function isModelLoaded(): boolean {
+  return extractor !== null;
+}
+
 export function cosineSimilarity(a: Float32Array, b: Float32Array): number {
   let dot = 0;
   let normA = 0;

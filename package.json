@@ -1,6 +1,6 @@
 {
   "name": "cortexmem",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Persistent memory for AI coding agents — MCP server for cross-session context",
   "keywords": [
     "mcp",
@@ -10,18 +10,38 @@
     "copilot",
     "memory",
     "context",
-    "llm"
+    "llm",
+    "coding-agent",
+    "vector-search",
+    "embeddings"
   ],
+  "author": "Ashprakash",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Ashprakash/cortexmem.git"
+  },
+  "homepage": "https://github.com/Ashprakash/cortexmem#readme",
+  "bugs": {
+    "url": "https://github.com/Ashprakash/cortexmem/issues"
+  },
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "bin": {
     "cortexmem": "dist/index.js"
   },
   "type": "module",
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
   "scripts": {
     "build": "tsc",
     "dev": "tsx src/index.ts",
-    "start": "node dist/index.js"
+    "start": "node dist/index.js",
+    "prepublishOnly": "npm run build",
+    "test": "vitest run",
+    "test:watch": "vitest"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.30.0",
@@ -34,7 +54,8 @@
     "@types/node": "^20.0.0",
     "@types/sql.js": "^1.4.9",
     "tsx": "^4.0.0",
-    "typescript": "^5.0.0"
+    "typescript": "^5.0.0",
+    "vitest": "^4.0.18"
   },
   "engines": {
     "node": ">=18"
