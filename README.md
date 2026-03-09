@@ -1,14 +1,12 @@
 # cortexmem
 
-**Persistent memory for AI coding agents -- zero config, works with Cursor, Claude Code, Codex, and any MCP-compatible editor.**
+**Persistent memory for AI coding agents. Zero config, works with Cursor, Claude Code, Codex, and any MCP-compatible editor.**
 
 [![npm version](https://img.shields.io/npm/v/cortexmem.svg)](https://www.npmjs.com/package/cortexmem)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Node.js >= 18](https://img.shields.io/badge/node-%3E%3D18-brightgreen.svg)](https://nodejs.org)
 
-AI coding agents lose all context when a session ends. CortexMem fixes this by building a semantic memory store from your git history, codebase, and session context -- then making it searchable via MCP tools.
-
-The name combines **cortex** (the brain's memory center) with **mem** (memory) -- persistent memory for your AI coding agent.
+AI coding agents lose all context when a session ends. CortexMem fixes this by building a semantic memory store from your git history, codebase, and session context, then making it searchable via MCP tools.
 
 ## Setup
 
@@ -21,7 +19,7 @@ npx cortexmem init
 
 This scans your git history and codebase, embeds everything locally, and stores it in `.cortexmem/store.db`. It also generates editor config files (`CLAUDE.md`, `.cursorrules`, `codex.md`) that instruct AI agents to use cortexmem automatically.
 
-First run downloads the embedding model (~30MB, one-time). Subsequent runs are **incremental** -- only new commits and changed files are re-indexed.
+First run downloads the embedding model (~30MB, one-time). Subsequent runs are **incremental** and only re-index new commits and changed files.
 
 ```
 $ npx cortexmem init
@@ -57,7 +55,7 @@ npx cortexmem init ./PROJECT.md
 
 ### Step 2: Add to your editor's MCP config
 
-**Cursor** -- add to `~/.cursor/mcp.json`:
+**Cursor** (add to `~/.cursor/mcp.json`):
 
 ```json
 {
@@ -70,7 +68,7 @@ npx cortexmem init ./PROJECT.md
 }
 ```
 
-**Claude Code** -- add to `~/.claude.json` or project settings:
+**Claude Code** (add to `~/.claude.json` or project settings):
 
 ```json
 {
@@ -83,7 +81,7 @@ npx cortexmem init ./PROJECT.md
 }
 ```
 
-**With LLM-powered compaction** (optional) -- add your Anthropic API key:
+**With LLM-powered compaction** (optional, add your Anthropic API key):
 
 ```json
 {
@@ -101,7 +99,7 @@ npx cortexmem init ./PROJECT.md
 
 Restart your editor. CortexMem is running.
 
-> `ANTHROPIC_API_KEY` is optional -- enables LLM-based session compaction via `summarize_session`. Without it, everything else works and compaction uses a deterministic fallback.
+> `ANTHROPIC_API_KEY` is optional. It enables LLM-based session compaction via `summarize_session`. Without it, everything else works and compaction uses a deterministic fallback.
 
 ### Step 3: There is no step 3
 
@@ -121,7 +119,7 @@ Your AI agent automatically calls `get_context` at session start:
 
 ```
 ## CortexMem Context — my-project
-Initialized: 2025-03-08T10:30:00Z
+Initialized: 2026-03-08T10:30:00Z
 
 ### Project Overview
 my-project: Node.js/TypeScript API server. 142 commits, 38 files.
@@ -144,7 +142,7 @@ save_context({
 
 save_context({
   context_type: "constraint",
-  content: "Auth middleware must never be modified directly — extend via plugins in src/auth/plugins/",
+  content: "Auth middleware must never be modified directly. Extend via plugins in src/auth/plugins/",
   related_files: ["src/middleware/auth.ts"]
 })
 → Saved constraint context (id: 13, session: a1b2c3, branch: main)
@@ -183,7 +181,7 @@ JWT auth implemented with httpOnly cookies. Auth middleware uses plugin
 architecture (never modify directly). Refresh token rotation still TODO.
 
 ### Recent Sessions (main)
-#### Session a1b2c3 (2025-03-08)
+#### Session a1b2c3 (2026-03-08)
 Implemented JWT authentication with refresh tokens. Access tokens expire
 in 15min, refresh in 7 days. Created plugin-based auth middleware.
 Refresh token rotation is the next task.
@@ -207,7 +205,7 @@ get_context({ query: "auth middleware", depth: 3 })
   JWT auth with refresh tokens. Plugin-based middleware architecture.
 
   **Details:**
-  - [Constraint] Auth middleware must never be modified directly — extend via plugins
+  - [Constraint] Auth middleware must never be modified directly. Extend via plugins
   - [Decision] Using JWT with refresh tokens for auth. Access tokens expire in 15min...
 ```
 
@@ -239,9 +237,9 @@ Summary (incremental):
 ## How It Works
 
 1. **`cortexmem init`** scans your git history and codebase, chunks and embeds everything locally
-2. Everything is stored in `.cortexmem/store.db` -- a single SQLite file, portable across editors and machines
+2. Everything is stored in `.cortexmem/store.db`, a single SQLite file portable across editors and machines
 3. Your AI agent uses 4 MCP tools to search, save, and compact context
-4. Context is organized in a **pyramid**: project → branch → session summaries, with raw chunks underneath
+4. Context is organized in a **pyramid**: project, branch, and session summaries with raw chunks underneath
 
 ### The Context Pyramid
 
@@ -255,7 +253,7 @@ Project Summary              ← "What is this project about?"
 ```
 
 - `get_context()` returns the pyramid overview (~500-800 tokens)
-- `get_context({ query: "..." })` searches hierarchically -- matches summaries first, drills into raw chunks only when needed
+- `get_context({ query: "..." })` searches hierarchically, matching summaries first and drilling into raw chunks only when needed
 - `summarize_session()` rolls up: session chunks → session summary → branch summary → project summary
 
 ### What Gets Indexed
@@ -292,7 +290,7 @@ Project Summary              ← "What is this project about?"
 
 ```
 cortexmem init [project-file]   Scan git history + codebase, build context store
-                                 Incremental on re-run -- only indexes new changes
+                                 Incremental on re-run, only indexes new changes
 cortexmem inject <file>         Inject/update a project file (spec, requirements)
 cortexmem status                Show what's stored
 cortexmem                       Start MCP server (used by AI editors)
@@ -309,8 +307,8 @@ scp .cortexmem/store.db user@newmachine:~/project/.cortexmem/
 # Share with teammates (commit it)
 git add .cortexmem/store.db
 
-# Switch editors -- same file works everywhere
-# Claude Code -> Cursor -> Codex -- no migration needed
+# Switch editors, same file works everywhere
+# Claude Code -> Cursor -> Codex, no migration needed
 ```
 
 ## Environment Variables
@@ -323,10 +321,10 @@ git add .cortexmem/store.db
 
 ## Architecture
 
-- **Embeddings**: `all-MiniLM-L6-v2` via `@xenova/transformers` -- runs locally, no API key needed, ~30MB model
-- **Storage**: SQLite via `sql.js` (WASM) -- zero native dependencies, works on any OS
+- **Embeddings**: `all-MiniLM-L6-v2` via `@xenova/transformers`. Runs locally, no API key needed, ~30MB model
+- **Storage**: SQLite via `sql.js` (WASM). Zero native dependencies, works on any OS
 - **Search**: Hybrid keyword + vector search. Keywords by default, vector when model is warm. Both work offline.
-- **Transport**: MCP stdio -- works with any MCP-compatible editor
+- **Transport**: MCP stdio. Works with any MCP-compatible editor
 
 ## Development
 
