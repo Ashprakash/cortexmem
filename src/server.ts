@@ -9,7 +9,7 @@ import { getContext } from './tools/get_context.js';
 import { getStatus } from './tools/get_status.js';
 import { summarizeSession } from './tools/summarize_session.js';
 
-export async function startServer(): Promise<void> {
+export function createServer(): Server {
   const server = new Server(
     { name: 'cortexmem', version: '0.2.0' },
     { capabilities: { tools: {} } },
@@ -136,6 +136,11 @@ export async function startServer(): Promise<void> {
     }
   });
 
+  return server;
+}
+
+export async function startServer(): Promise<void> {
+  const server = createServer();
   const transport = new StdioServerTransport();
   await server.connect(transport);
 }

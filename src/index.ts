@@ -69,6 +69,24 @@ async function main() {
       break;
     }
 
+    case 'serve': {
+      const postgresUrl = process.env.CORTEXMEM_POSTGRES_URL;
+      if (!postgresUrl) {
+        console.error('Error: CORTEXMEM_POSTGRES_URL environment variable is required for collaborative mode.');
+        console.error('Example: CORTEXMEM_POSTGRES_URL=postgresql://user:pass@localhost:5432/cortexmem cortexmem serve');
+        process.exit(1);
+      }
+
+      const portArg = process.argv.indexOf('--port');
+      const port = portArg !== -1 && process.argv[portArg + 1]
+        ? parseInt(process.argv[portArg + 1], 10)
+        : 7437;
+
+      const { startHttpServer } = await import('./server-http.js');
+      await startHttpServer({ port, postgresUrl });
+      break;
+    }
+
     case 'help':
     case '--help':
     case '-h': {
@@ -79,9 +97,10 @@ Commands:
   cortexmem init [project-file]   Scan git history + codebase, build context store
   cortexmem inject <file>         Inject a project file (spec, requirements, etc.)
   cortexmem status                Show what's stored
+  cortexmem serve [--port 7437]   Start collaborative HTTP server (requires CORTEXMEM_POSTGRES_URL)
   cortexmem                       Start MCP server (used by AI editors)
 
-Setup:
+Local mode (default):
   Add to your MCP config (e.g. ~/.cursor/mcp.json):
   {
     "mcpServers": {
@@ -91,6 +110,19 @@ Setup:
       }
     }
   }
+
+Collaborative mode:
+  1. Start the server:
+     CORTEXMEM_POSTGRES_URL=postgresql://localhost/cortexmem cortexmem serve
+
+  2. Point your editor to the server:
+     {
+       "mcpServers": {
+         "cortexmem": {
+           "url": "http://localhost:7437/mcp"
+         }
+       }
+     }
 `);
       break;
     }
